@@ -20,14 +20,30 @@ class Reranker:
         top_k=5
     ):
 
+        if not chunks:
+            return []
+
         pairs = []
 
         for chunk in chunks:
 
+            rerank_text = f"""
+File: {chunk.get('file', '')}
+
+Class: {chunk.get('class_name', '')}
+
+Name: {chunk.get('name', '')}
+
+Type: {chunk.get('chunk_type', '')}
+
+Code:
+{chunk.get('content', '')}
+"""
+
             pairs.append(
                 (
                     query,
-                    chunk["content"]
+                    rerank_text
                 )
             )
 
@@ -42,9 +58,11 @@ class Reranker:
             scores
         ):
 
-            chunk["rerank_score"] = float(score)
+            item = chunk.copy()
 
-            ranked.append(chunk)
+            item["rerank_score"] = float(score)
+
+            ranked.append(item)
 
         ranked.sort(
             key=lambda x: x["rerank_score"],

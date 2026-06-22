@@ -1,14 +1,29 @@
+# Virtual env
 venv/
+.venv/
+
+# Python
 __pycache__/
 *.pyc
 
-data/repos/
+# Models
+models/
+
+# Generated indexes
+data/indexes/
 data/generated/
 
-.cache/
-.pytest_cache/
+# OS
+.DS_Store
+Thumbs.db
 
-.env
+# Cloned repositories
+data/repos/
 
-.vscode/
-.idea/
+# Generated indexes
+data/indexes/
+data/generated/
+
+# Virtual env
+venv/
+.venv/

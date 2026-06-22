@@ -1,0 +1,26 @@
+name: "GitGPT Repository Assistant"
+
+description: "Ask questions about GitHub repositories using RAG"
+
+author: "Anuj Bharat"
+
+inputs:
+  repository:
+    description: "Repository name"
+    required: true
+
+  question:
+    description: "Question to ask"
+    required: true
+
+outputs:
+  answer:
+    description: "Generated answer"
+
+runs:
+  using: "docker"
+  image: "Dockerfile"
+
+branding:
+  icon: "search"
+  color: "blue"

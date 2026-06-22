@@ -38,9 +38,12 @@ def build_repository_chunks(repo_path):
             if not file.endswith(".py"):
                 continue
 
-            file_path = os.path.join(root, file)
+            file_path = os.path.join(
+                root,
+                file
+            )
 
-            # extra safety
+            # Skip test files
             if "tests" in file_path.lower():
                 continue
 
@@ -78,9 +81,7 @@ def save_chunks(chunks):
     )
 
 
-if __name__ == "__main__":
-
-    repo_path = "data/repos/fastapi"
+def build_chunks(repo_path):
 
     print("Building chunks...")
 
@@ -93,3 +94,12 @@ if __name__ == "__main__":
     )
 
     save_chunks(chunks)
+
+    return chunks
+
+
+if __name__ == "__main__":
+
+    build_chunks(
+        "data/repos/fastapi"
+    )

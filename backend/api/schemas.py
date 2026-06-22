@@ -1,11 +1,27 @@
 from pydantic import BaseModel
 
 
-class QuestionRequest(BaseModel):
+class RepositoryRequest(
+    BaseModel
+):
+    repo_url: str
 
+
+class QuestionRequest(
+    BaseModel
+):
+    repository: str
     question: str
 
 
-class QuestionResponse(BaseModel):
+class Source(
+    BaseModel
+):
+    file: str
+    name: str
 
+
+class QuestionResponse(
+    BaseModel
+):
     answer: str

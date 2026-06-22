@@ -1,26 +1,29 @@
-from contextlib import asynccontextmanager
+from backend.api.system_routes import (
+    router as system_router
+)
 
 from fastapi import FastAPI
 
-from backend.api.routes import router
-from backend.rag.pipeline import RepoRAG
-
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-
-    print("Loading RepoRAG...")
-
-    app.state.rag = RepoRAG()
-
-    print("RepoRAG Ready")
-
-    yield
-
-
-app = FastAPI(
-    title="GitHub Repository RAG",
-    lifespan=lifespan
+from backend.api.routes import (
+    router
 )
 
-app.include_router(router)
+from backend.api.index_routes import (
+    router as index_router
+)
+
+app = FastAPI(
+    title="GitGPT"
+)
+
+app.include_router(
+    router
+)
+
+app.include_router(
+    index_router
+)
+
+app.include_router(
+    system_router
+)

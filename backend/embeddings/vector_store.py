@@ -9,15 +9,17 @@ from backend.embeddings.embedder import (
     get_embeddings
 )
 
+from backend.utils.repository_utils import (
+    get_repo_index_dir
+)
+
 
 CHUNKS_PATH = "data/generated/chunks.json"
 
-INDEX_PATH = "data/generated/faiss_index.bin"
 
-METADATA_PATH = "data/generated/metadata.json"
-
-
-def build_faiss_index():
+def build_faiss_index(
+    repo_name
+):
 
     print("Loading chunks...")
 
@@ -29,16 +31,27 @@ def build_faiss_index():
 
         chunks = json.load(f)
 
-    print(f"Loaded {len(chunks)} chunks")
+    print(
+        f"Loaded {len(chunks)} chunks"
+    )
 
-    texts = [
-        create_embedding_text(chunk)
-        for chunk in chunks
-    ]
+    texts = []
 
-    print("Generating embeddings...")
+    for chunk in chunks:
 
-    embeddings = get_embeddings(texts)
+        texts.append(
+            create_embedding_text(
+                chunk
+            )
+        )
+
+    print(
+        "Generating embeddings..."
+    )
+
+    embeddings = get_embeddings(
+        texts
+    )
 
     embeddings = np.array(
         embeddings,
@@ -55,36 +68,54 @@ def build_faiss_index():
         dimension
     )
 
-    index.add(embeddings)
+    index.add(
+        embeddings
+    )
+
+    index_dir = get_repo_index_dir(
+        repo_name
+    )
 
     os.makedirs(
-        "data/generated",
+        index_dir,
         exist_ok=True
+    )
+
+    index_path = os.path.join(
+        index_dir,
+        "faiss_index.bin"
+    )
+
+    metadata_path = os.path.join(
+        index_dir,
+        "metadata.json"
     )
 
     faiss.write_index(
         index,
-        INDEX_PATH
+        index_path
     )
 
     metadata = []
 
     for chunk in chunks:
 
-        metadata.append({
-            "id": chunk["id"],
-            "file": chunk["file"],
-            "chunk_type": chunk["chunk_type"],
-            "name": chunk["name"],
-            "class_name": chunk.get(
-                "class_name",
-                ""
-            ),
-            "content": chunk["content"]
-        })
+        metadata.append(
+            {
+                "id": chunk["id"],
+                "file": chunk["file"],
+                "chunk_type": chunk["chunk_type"],
+                "name": chunk["name"],
+                "class_name": chunk.get(
+                    "class_name",
+                    ""
+                ),
+                "content": chunk["content"]
+            }
+        )
 
     with open(
-        METADATA_PATH,
+        metadata_path,
         "w",
         encoding="utf-8"
     ) as f:
@@ -97,11 +128,11 @@ def build_faiss_index():
         )
 
     print(
-        f"FAISS Index Saved → {INDEX_PATH}"
+        f"FAISS Index Saved → {index_path}"
     )
 
     print(
-        f"Metadata Saved → {METADATA_PATH}"
+        f"Metadata Saved → {metadata_path}"
     )
 
     print(

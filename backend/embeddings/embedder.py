@@ -1,4 +1,6 @@
-from sentence_transformers import SentenceTransformer
+from sentence_transformers import (
+    SentenceTransformer
+)
 
 model = SentenceTransformer(
     "BAAI/bge-small-en-v1.5"
@@ -7,18 +9,52 @@ model = SentenceTransformer(
 
 def create_embedding_text(chunk):
 
+    file_name = chunk.get(
+        "file",
+        ""
+    )
+
+    class_name = chunk.get(
+        "class_name",
+        ""
+    )
+
+    name = chunk.get(
+        "name",
+        ""
+    )
+
+    chunk_type = chunk.get(
+        "chunk_type",
+        ""
+    )
+
+    content = chunk.get(
+        "content",
+        ""
+    )
+
     text = f"""
-File: {chunk.get('file', '')}
+Repository File:
+{file_name}
 
-Class: {chunk.get('class_name', '')}
+Class:
+{class_name}
 
-Name: {chunk.get('name', '')}
+Function:
+{name}
 
-Type: {chunk.get('chunk_type', '')}
+Type:
+{chunk_type}
 
-Code:
+Keywords:
+{file_name}
+{name}
+{class_name}
+{chunk_type}
 
-{chunk.get('content', '')}
+Source Code:
+{content}
 """
 
     return text

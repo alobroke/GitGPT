@@ -3,6 +3,17 @@ from backend.embeddings.vector_store import (
 )
 
 
+def build_index(
+    repo_name
+):
+
+    build_faiss_index(
+        repo_name
+    )
+
+
 if __name__ == "__main__":
 
-    build_faiss_index()
+    build_index(
+        "fastapi"
+    )

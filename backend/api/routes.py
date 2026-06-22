@@ -1,21 +1,19 @@
-from fastapi import APIRouter
-from fastapi import Request
+from fastapi import (
+    APIRouter
+)
 
 from backend.api.schemas import (
     QuestionRequest,
     QuestionResponse
 )
 
+from backend.rag.pipeline import (
+    RepoRAG
+)
+
 router = APIRouter()
 
-
-@router.get("/")
-def health():
-
-    return {
-        "status": "running",
-        "service": "GitHub Repository RAG"
-    }
+_loaded_rags = {}
 
 
 @router.post(
@@ -23,11 +21,28 @@ def health():
     response_model=QuestionResponse
 )
 def ask_question(
-    request: Request,
     body: QuestionRequest
 ):
 
-    rag = request.app.state.rag
+    repository = (
+        body.repository
+    )
+
+    if repository not in _loaded_rags:
+
+        print(
+            f"Loading repository RAG: {repository}"
+        )
+
+        _loaded_rags[
+            repository
+        ] = RepoRAG(
+            repository
+        )
+
+    rag = _loaded_rags[
+        repository
+    ]
 
     result = rag.ask(
         body.question

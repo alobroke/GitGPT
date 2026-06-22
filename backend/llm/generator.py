@@ -26,9 +26,12 @@ class Generator:
             outputs = model.generate(
                 **inputs,
                 max_new_tokens=max_new_tokens,
-                temperature=0.1,
-                do_sample=True,
-                pad_token_id=tokenizer.eos_token_id
+                do_sample=False,
+                temperature=0.0,
+                top_p=1.0,
+                repetition_penalty=1.1,
+                pad_token_id=tokenizer.eos_token_id,
+                eos_token_id=tokenizer.eos_token_id
             )
 
         generated_tokens = outputs[0][
