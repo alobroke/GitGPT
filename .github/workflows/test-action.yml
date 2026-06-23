@@ -1,0 +1,31 @@
+name: Test GitGPT
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Run GitGPT
+        id: gitgpt
+        uses: ./
+        with:
+          question: "What is the purpose of this repository?"
+          llm-provider: openai
+          llm-model: gpt-4o-mini
+          api-key: ${{ secrets.OPENAI_API_KEY }}
+
+      - name: Print Answer
+        run: |
+          echo "ANSWER:"
+          echo "${{ steps.gitgpt.outputs.answer }}"
