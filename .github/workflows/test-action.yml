@@ -27,5 +27,12 @@ jobs:
 
       - name: Print Answer
         run: |
-          echo "ANSWER:"
+          echo "=================================="
+          echo "GITGPT ANSWER"
+          echo "=================================="
           echo "${{ steps.gitgpt.outputs.answer }}"
+          echo ""
+          echo "=================================="
+          echo "SOURCES"
+          echo "=================================="
+          echo '${{ steps.gitgpt.outputs.sources }}'
