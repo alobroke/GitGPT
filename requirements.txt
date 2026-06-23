@@ -15,23 +15,10 @@ pydantic==2.11.7
 huggingface-hub==0.34.4
 
 python-multipart==0.0.20
-# CPU-only torch to keep the image small and avoid CUDA pulls on GitHub-hosted runners.
---extra-index-url https://download.pytorch.org/whl/cpu
-torch==2.4.1+cpu
 
-sentence-transformers==3.0.1
-faiss-cpu==1.8.0.post1
-numpy==1.26.4
-
-# Re-ranking
-transformers==4.44.2
-
-# LLM provider SDKs
 anthropic==0.34.2
 openai==1.45.0
-huggingface_hub==0.24.6
 
-# GitHub API + misc
 requests==2.32.3
 PyGithub==2.4.0
 tiktoken==0.7.0
