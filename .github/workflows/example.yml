@@ -1,0 +1,24 @@
+name: GitGPT Example
+
+on:
+  workflow_dispatch:
+
+jobs:
+  ask:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Ask GitGPT
+        id: gitgpt
+        uses: ./
+        with:
+          question: "What is the purpose of this repository?"
+          llm-provider: anthropic
+          llm-model: claude-3-5-sonnet-latest
+          api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+
+      - name: Print Answer
+        run: |
+          echo "${{ steps.gitgpt.outputs.answer }}"

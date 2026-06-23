@@ -1,26 +1,60 @@
-name: "GitGPT Repository Assistant"
-
-description: "Ask questions about GitHub repositories using RAG"
-
-author: "Anuj Bharat"
+name: 'GitGPT — Repo RAG Assistant'
+description: 'Ask natural-language questions about a repository and get source-grounded answers using RAG (FAISS + embeddings + LLM).'
+author: 'alobroke'
+branding:
+  icon: 'message-square'
+  color: 'purple'
 
 inputs:
-  repository:
-    description: "Repository name"
-    required: true
-
   question:
-    description: "Question to ask"
-    required: true
+    description: 'The question to ask about the repository. If omitted, GitGPT looks for a "/gitgpt <question>" command in the triggering comment.'
+    required: false
+    default: ''
+  github-token:
+    description: 'Token used to post the answer as a PR/issue comment. Defaults to the workflow GITHUB_TOKEN.'
+    required: false
+    default: ${{ github.token }}
+  llm-provider:
+    description: 'Which LLM backend to use: "openai", "anthropic", "huggingface", or "local" (runs Qwen2.5-Coder locally — requires a GPU runner).'
+    required: false
+    default: 'anthropic'
+  llm-model:
+    description: 'Model name/id for the chosen provider.'
+    required: false
+    default: 'claude-sonnet-4-6'
+  api-key:
+    description: 'API key for the chosen LLM provider (e.g. ANTHROPIC_API_KEY / OPENAI_API_KEY / HF_TOKEN). Not needed for llm-provider=local.'
+    required: false
+    default: ''
+  embedding-model:
+    description: 'SentenceTransformers embedding model used for indexing.'
+    required: false
+    default: 'BAAI/bge-small-en-v1.5'
+  top-k:
+    description: 'Number of chunks to retrieve before re-ranking.'
+    required: false
+    default: '8'
+  paths:
+    description: 'Comma-separated glob patterns to restrict which files get indexed (default: whole repo, common code extensions only).'
+    required: false
+    default: '**/*.py,**/*.js,**/*.ts,**/*.tsx,**/*.jsx,**/*.go,**/*.java,**/*.md'
+  post-comment:
+    description: 'Whether to post the answer as a comment on the triggering PR/issue.'
+    required: false
+    default: 'true'
+  cache-index:
+    description: 'Whether to cache the built FAISS index between runs (recommended for large repos).'
+    required: false
+    default: 'true'
 
 outputs:
   answer:
-    description: "Generated answer"
+    description: 'The generated answer text.'
+  sources:
+    description: 'JSON array of source file paths / line ranges used as context.'
 
 runs:
-  using: "docker"
-  image: "Dockerfile"
-
-branding:
-  icon: "search"
-  color: "blue"
+  using: 'docker'
+  image: 'Dockerfile'
+  args:
+    - ${{ inputs.question }}
