@@ -1,5 +1,4 @@
-from abc import ABC
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 
 import requests
 
@@ -15,9 +14,7 @@ class LLMBackend(ABC):
         pass
 
 
-class OllamaBackend(
-    LLMBackend
-):
+class OllamaBackend(LLMBackend):
 
     def __init__(
         self,
@@ -32,21 +29,28 @@ class OllamaBackend(
     ):
 
         context = "\n\n".join(
-            context_blocks
+            context_blocks[:3]
         )
 
         prompt = f"""
 You are GitGPT.
 
-Answer ONLY from repository context.
+You are a repository analysis assistant.
+
+RULES:
+- Use ONLY the repository context.
+- Do NOT invent information.
+- Mention files, classes and methods when possible.
+- If the answer is not found in the repository, say:
+  "I could not find enough information in the repository."
 
 QUESTION:
 {question}
 
-CONTEXT:
+REPOSITORY CONTEXT:
 {context}
 
-ANSWER:
+FINAL ANSWER:
 """
 
         response = requests.post(
@@ -54,21 +58,26 @@ ANSWER:
             json={
                 "model": self.model_name,
                 "prompt": prompt,
-                "stream": False
+                "stream": False,
+                "options": {
+                    "temperature": 0,
+                    "top_p": 1
+                }
             },
-            timeout=300
+            timeout=600
         )
 
         response.raise_for_status()
 
-        return response.json()[
-            "response"
-        ]
+        data = response.json()
+
+        return data.get(
+            "response",
+            ""
+        ).strip()
 
 
-class OpenAIBackend(
-    LLMBackend
-):
+class OpenAIBackend(LLMBackend):
 
     def __init__(
         self,
@@ -85,6 +94,7 @@ class OpenAIBackend(
     ):
 
         try:
+
             from openai import OpenAI
 
             client = OpenAI(
@@ -92,28 +102,47 @@ class OpenAIBackend(
             )
 
             context = "\n\n".join(
-                context_blocks
+                context_blocks[:3]
             )
 
-            response = client.chat.completions.create(
-                model=self.model_name,
-                messages=[
-                    {
-                        "role": "system",
-                        "content":
-                        "Answer only from repository context."
-                    },
-                    {
-                        "role": "user",
-                        "content":
-                        f"Question: {question}\n\nContext:\n{context}"
-                    }
-                ]
+            response = (
+                client.chat.completions.create(
+                    model=self.model_name,
+                    temperature=0,
+                    messages=[
+                        {
+                            "role": "system",
+                            "content": """
+You are GitGPT.
+
+Answer ONLY using repository context.
+
+Never use outside knowledge.
+Never invent APIs, files, classes or behavior.
+"""
+                        },
+                        {
+                            "role": "user",
+                            "content": f"""
+QUESTION:
+{question}
+
+REPOSITORY CONTEXT:
+{context}
+
+FINAL ANSWER:
+"""
+                        }
+                    ]
+                )
             )
 
-            return response.choices[
-                0
-            ].message.content
+            return (
+                response
+                .choices[0]
+                .message.content
+                .strip()
+            )
 
         except Exception as e:
 
@@ -122,9 +151,7 @@ class OpenAIBackend(
             )
 
 
-class AnthropicBackend(
-    LLMBackend
-):
+class AnthropicBackend(LLMBackend):
 
     def __init__(
         self,
@@ -149,30 +176,42 @@ class AnthropicBackend(
             )
 
             context = "\n\n".join(
-                context_blocks
+                context_blocks[:3]
             )
 
             response = client.messages.create(
                 model=self.model_name,
                 max_tokens=1000,
+                temperature=0,
                 messages=[
                     {
                         "role": "user",
-                        "content":
-                        f"""
-Question:
+                        "content": f"""
+You are GitGPT.
+
+Answer ONLY using repository context.
+
+QUESTION:
 {question}
 
-Repository Context:
+REPOSITORY CONTEXT:
 {context}
+
+If the answer is missing, say:
+"I could not find enough information in the repository."
+
+FINAL ANSWER:
 """
                     }
                 ]
             )
 
-            return response.content[
-                0
-            ].text
+            return (
+                response
+                .content[0]
+                .text
+                .strip()
+            )
 
         except Exception as e:
 
@@ -197,6 +236,12 @@ def get_backend(
 
     if provider == "openai":
 
+        if not api_key:
+
+            raise ValueError(
+                "OpenAI API key missing"
+            )
+
         return OpenAIBackend(
             model,
             api_key
@@ -204,11 +249,17 @@ def get_backend(
 
     if provider == "anthropic":
 
+        if not api_key:
+
+            raise ValueError(
+                "Anthropic API key missing"
+            )
+
         return AnthropicBackend(
             model,
             api_key
         )
 
     raise ValueError(
-        f"Unknown provider: {provider}"
+        f"Unsupported provider: {provider}"
     )

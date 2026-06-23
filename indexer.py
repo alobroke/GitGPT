@@ -10,6 +10,24 @@ from sentence_transformers import (
 )
 
 
+IGNORED_DIRS = {
+    ".git",
+    ".github",
+    "__pycache__",
+    ".pytest_cache",
+    ".mypy_cache",
+    ".idea",
+    ".vscode",
+    "venv",
+    ".venv",
+    "node_modules",
+    "dist",
+    "build",
+    "data",
+    ".cache"
+}
+
+
 @dataclass
 class Chunk:
     file_path: str
@@ -23,26 +41,22 @@ class RepositoryIndex:
     def __init__(
         self,
         chunks,
-        embeddings
+        embeddings,
+        embedding_model
     ):
+
         self.chunks = chunks
-        self.embeddings = embeddings
+
+        self.embedder = SentenceTransformer(
+            embedding_model,
+            cache_folder=".cache/models"
+        )
 
         dim = embeddings.shape[1]
 
-        self.index = faiss.IndexFlatIP(
-            dim
-        )
+        self.index = faiss.IndexFlatIP(dim)
 
-        self.index.add(
-            embeddings
-        )
-
-        self.embedder = (
-            SentenceTransformer(
-                "BAAI/bge-small-en-v1.5"
-            )
-        )
+        self.index.add(embeddings)
 
     def search(
         self,
@@ -50,18 +64,18 @@ class RepositoryIndex:
         top_k=10
     ):
 
-        q = self.embedder.encode(
+        query_embedding = self.embedder.encode(
             [query],
             normalize_embeddings=True
         )
 
-        q = np.array(
-            q,
+        query_embedding = np.array(
+            query_embedding,
             dtype=np.float32
         )
 
-        scores, ids = self.index.search(
-            q,
+        scores, indices = self.index.search(
+            query_embedding,
             top_k
         )
 
@@ -69,7 +83,7 @@ class RepositoryIndex:
 
         for score, idx in zip(
             scores[0],
-            ids[0]
+            indices[0]
         ):
 
             if idx < 0:
@@ -96,20 +110,20 @@ class Reranker:
     def rerank(
         self,
         query,
-        chunks,
+        candidates,
         top_n=5
     ):
 
-        pairs = []
+        if not candidates:
+            return []
 
-        for chunk, score in chunks:
-
-            pairs.append(
-                (
-                    query,
-                    chunk.text
-                )
+        pairs = [
+            (
+                query,
+                chunk.text
             )
+            for chunk, _ in candidates
+        ]
 
         scores = self.model.predict(
             pairs
@@ -117,14 +131,17 @@ class Reranker:
 
         ranked = []
 
-        for item, score in zip(
-            chunks,
+        for (
+            chunk,
+            _
+        ), score in zip(
+            candidates,
             scores
         ):
 
             ranked.append(
                 (
-                    item[0],
+                    chunk,
                     float(score)
                 )
             )
@@ -137,6 +154,21 @@ class Reranker:
         return ranked[:top_n]
 
 
+def should_skip(
+    path
+):
+
+    path_parts = set(
+        Path(path).parts
+    )
+
+    return bool(
+        path_parts.intersection(
+            IGNORED_DIRS
+        )
+    )
+
+
 def chunk_repository(
     repo_root,
     patterns
@@ -144,15 +176,32 @@ def chunk_repository(
 
     chunks = []
 
+    repo_root = Path(
+        repo_root
+    )
+
     for pattern in patterns:
 
-        for file in Path(
-            repo_root
-        ).rglob(
-            pattern.replace("**/", "")
-        ):
+        clean_pattern = (
+            pattern
+            .replace("**/", "")
+            .replace("*", "")
+        )
+
+        if not clean_pattern.startswith("."):
+            clean_pattern = (
+                "." + clean_pattern
+            )
+
+        for file in repo_root.rglob("*"):
 
             if not file.is_file():
+                continue
+
+            if should_skip(file):
+                continue
+
+            if file.suffix != clean_pattern:
                 continue
 
             try:
@@ -167,29 +216,40 @@ def chunk_repository(
 
             lines = text.splitlines()
 
-            step = 80
+            chunk_size = 80
+            overlap = 20
 
-            for i in range(
-                0,
-                len(lines),
-                step
-            ):
+            start = 0
+
+            while start < len(lines):
+
+                end = min(
+                    start + chunk_size,
+                    len(lines)
+                )
 
                 chunk_text = "\n".join(
-                    lines[i:i+step]
+                    lines[start:end]
                 )
 
-                chunks.append(
-                    Chunk(
-                        file_path=str(file),
-                        start_line=i + 1,
-                        end_line=min(
-                            i + step,
-                            len(lines)
-                        ),
-                        text=chunk_text
+                if chunk_text.strip():
+
+                    chunks.append(
+                        Chunk(
+                            file_path=str(file),
+                            start_line=start + 1,
+                            end_line=end,
+                            text=chunk_text
+                        )
                     )
+
+                start += (
+                    chunk_size - overlap
                 )
+
+    print(
+        f"Total chunks created: {len(chunks)}"
+    )
 
     return chunks
 
@@ -201,21 +261,33 @@ def get_or_build_index(
     use_cache=True
 ):
 
+    print(
+        "Building chunks..."
+    )
+
     chunks = chunk_repository(
         repo_root,
         patterns
     )
 
-    embedder = (
-        SentenceTransformer(
-            embedding_model
-        )
+    print(
+        "Loading embedding model..."
+    )
+
+    embedder = SentenceTransformer(
+        embedding_model,
+        cache_folder=".cache/models"
+    )
+
+    print(
+        "Generating embeddings..."
     )
 
     embeddings = embedder.encode(
-        [c.text for c in chunks],
-        normalize_embeddings=True,
-        show_progress_bar=True
+        [chunk.text for chunk in chunks],
+        batch_size=32,
+        show_progress_bar=True,
+        normalize_embeddings=True
     )
 
     embeddings = np.array(
@@ -223,7 +295,12 @@ def get_or_build_index(
         dtype=np.float32
     )
 
+    print(
+        f"Embeddings shape: {embeddings.shape}"
+    )
+
     return RepositoryIndex(
         chunks,
-        embeddings
+        embeddings,
+        embedding_model
     )
