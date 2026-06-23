@@ -1,60 +1,72 @@
-name: 'GitGPT — Repo RAG Assistant'
-description: 'Ask natural-language questions about a repository and get source-grounded answers using RAG (FAISS + embeddings + LLM).'
-author: 'alobroke'
+name: "GitGPT"
+
+description: "Ask natural-language questions about any GitHub repository using Retrieval-Augmented Generation (RAG), semantic search, and LLMs."
+
+author: "alobroke"
+
 branding:
-  icon: 'message-square'
-  color: 'purple'
+  icon: "search"
+  color: "purple"
 
 inputs:
   question:
-    description: 'The question to ask about the repository. If omitted, GitGPT looks for a "/gitgpt <question>" command in the triggering comment.'
-    required: false
-    default: ''
+    description: "Question to ask about the repository"
+    required: true
+
   github-token:
-    description: 'Token used to post the answer as a PR/issue comment. Defaults to the workflow GITHUB_TOKEN.'
+    description: "GitHub token used for PR/Issue comments"
     required: false
-    default: ${{ github.token }}
+    default: ""
+
   llm-provider:
-    description: 'Which LLM backend to use: "openai", "anthropic", "huggingface", or "local" (runs Qwen2.5-Coder locally — requires a GPU runner).'
+    description: "LLM provider: ollama, openai, anthropic"
     required: false
-    default: 'anthropic'
+    default: "openai"
+
   llm-model:
-    description: 'Model name/id for the chosen provider.'
+    description: "Model name for the selected provider"
     required: false
-    default: 'claude-sonnet-4-6'
+    default: "gpt-4o-mini"
+
   api-key:
-    description: 'API key for the chosen LLM provider (e.g. ANTHROPIC_API_KEY / OPENAI_API_KEY / HF_TOKEN). Not needed for llm-provider=local.'
+    description: "API key for OpenAI or Anthropic"
     required: false
-    default: ''
+    default: ""
+
   embedding-model:
-    description: 'SentenceTransformers embedding model used for indexing.'
+    description: "Embedding model used for repository indexing"
     required: false
-    default: 'BAAI/bge-small-en-v1.5'
+    default: "BAAI/bge-small-en-v1.5"
+
   top-k:
-    description: 'Number of chunks to retrieve before re-ranking.'
+    description: "Number of chunks retrieved before reranking"
     required: false
-    default: '8'
+    default: "8"
+
   paths:
-    description: 'Comma-separated glob patterns to restrict which files get indexed (default: whole repo, common code extensions only).'
+    description: "Comma-separated file patterns to index"
     required: false
-    default: '**/*.py,**/*.js,**/*.ts,**/*.tsx,**/*.jsx,**/*.go,**/*.java,**/*.md'
+    default: "**/*.py,**/*.js,**/*.ts,**/*.tsx,**/*.jsx,**/*.go,**/*.java,**/*.md"
+
   post-comment:
-    description: 'Whether to post the answer as a comment on the triggering PR/issue.'
+    description: "Post answer back to GitHub PR/Issue"
     required: false
-    default: 'true'
+    default: "false"
+
   cache-index:
-    description: 'Whether to cache the built FAISS index between runs (recommended for large repos).'
+    description: "Cache repository index between runs"
     required: false
-    default: 'true'
+    default: "true"
 
 outputs:
   answer:
-    description: 'The generated answer text.'
+    description: "Generated answer"
+
   sources:
-    description: 'JSON array of source file paths / line ranges used as context.'
+    description: "JSON array of source file paths and line ranges"
 
 runs:
-  using: 'docker'
-  image: 'Dockerfile'
+  using: "docker"
+  image: "Dockerfile"
   args:
     - ${{ inputs.question }}
