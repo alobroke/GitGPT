@@ -1,6 +1,6 @@
-name: "GitGPT"
+name: "GitGPT Codebase QA"
 
-description: "Ask natural-language questions about any GitHub repository using Retrieval-Augmented Generation (RAG), semantic search, and LLMs."
+description: "Ask questions about any GitHub repository using RAG, semantic search, and LLMs."
 
 author: "alobroke"
 
