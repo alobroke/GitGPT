@@ -3,11 +3,7 @@ from pathlib import Path
 
 import faiss
 import numpy as np
-
-from sentence_transformers import (
-    SentenceTransformer,
-    CrossEncoder
-)
+from sentence_transformers import SentenceTransformer
 
 
 IGNORED_DIRS = {
@@ -102,10 +98,7 @@ class RepositoryIndex:
 class Reranker:
 
     def __init__(self):
-
-        self.model = CrossEncoder(
-            "cross-encoder/ms-marco-MiniLM-L-6-v2"
-        )
+        pass
 
     def rerank(
         self,
@@ -117,42 +110,7 @@ class Reranker:
         if not candidates:
             return []
 
-        pairs = [
-            (
-                query,
-                chunk.text
-            )
-            for chunk, _ in candidates
-        ]
-
-        scores = self.model.predict(
-            pairs
-        )
-
-        ranked = []
-
-        for (
-            chunk,
-            _
-        ), score in zip(
-            candidates,
-            scores
-        ):
-
-            ranked.append(
-                (
-                    chunk,
-                    float(score)
-                )
-            )
-
-        ranked.sort(
-            key=lambda x: x[1],
-            reverse=True
-        )
-
-        return ranked[:top_n]
-
+        return candidates[:top_n]
 
 def should_skip(
     path
