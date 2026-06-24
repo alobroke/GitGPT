@@ -292,17 +292,6 @@ Current pipeline:
 
 ---
 
-## Screenshots
-
-Add screenshots here:
-
-* Health endpoint
-* Swagger API
-* Retrieval results
-* RAG answer examples
-
----
-
 ## License
 
 MIT License
